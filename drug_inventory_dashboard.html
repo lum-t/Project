@@ -1,0 +1,673 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Pharma Inventory — Dashboard</title>
+  <style>
+    :root{
+      --bg:#0b0f12;
+      --card:#0f1416;
+      --muted:#9aa8a6;
+      --accent:#00ff7f; /* neon green */
+      --accent-2:#00e36a;
+      --glass: rgba(255,255,255,0.03);
+      --danger:#ff6b6b;
+      --max-width:1200px;
+      --radius:12px;
+      --glass-2: rgba(255,255,255,0.02);
+      font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:linear-gradient(180deg,var(--bg),#071018 120%);
+      color:#e6f7ee;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    .app{
+      max-width:var(--max-width);
+      margin:28px auto;
+      display:grid;
+      grid-template-columns:260px 1fr;
+      gap:20px;
+      padding:20px;
+    }
+
+    /* SIDEBAR */
+    .sidebar{
+      background: linear-gradient(180deg,var(--card),#071018);
+      border-radius:var(--radius);
+      padding:18px;
+      min-height:600px;
+      box-shadow:0 8px 30px rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    .brand{
+      display:flex;align-items:center;gap:10px;margin-bottom:18px
+    }
+    .logo{
+      width:48px;height:48px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;color:#02100a;font-weight:800;font-size:18px
+    }
+    .brand h1{font-size:16px;margin:0}
+    .brand p{margin:0;font-size:12px;color:var(--muted)}
+
+    .nav{margin-top:12px}
+    .nav button{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border-radius:8px;border:0;background:transparent;color:inherit;font-weight:600;cursor:pointer;margin-bottom:8px}
+    .nav button.active{background:linear-gradient(90deg,rgba(0,255,127,0.06),rgba(0,227,106,0.03));box-shadow:inset 0 0 0 1px rgba(0,255,127,0.04)}
+    .nav svg{opacity:0.75}
+
+    .sidebar .meta{margin-top:18px;padding-top:10px;border-top:1px dashed rgba(255,255,255,0.02)}
+    .small{font-size:12px;color:var(--muted)}
+
+    /* MAIN */
+    .main{
+      background:linear-gradient(180deg,rgba(255,255,255,0.015),transparent);
+      border-radius:var(--radius);
+      padding:18px;
+      min-height:600px;
+      box-shadow:0 8px 40px rgba(0,0,0,0.6);
+      border:1px solid rgba(255,255,255,0.02);
+    }
+
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .search{flex:1;display:flex;gap:8px;align-items:center}
+    .search input{flex:1;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);background:var(--glass);color:inherit}
+    .controls{display:flex;gap:8px;align-items:center}
+    .icon-btn{background:transparent;border:1px solid rgba(255,255,255,0.03);padding:8px;border-radius:8px;cursor:pointer}
+
+    .grid{display:grid;grid-template-columns:1fr 380px;gap:18px;margin-top:18px}
+
+    /* ADD FORM */
+    .card{background:linear-gradient(180deg,rgba(255,255,255,0.01),transparent);padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,0.02)}
+    .card h3{margin:0 0 8px 0}
+    .form-row{display:flex;gap:8px}
+    .form-row .field{flex:1;display:flex;flex-direction:column}
+    label{font-size:12px;margin-bottom:6px;color:var(--muted)}
+    input,select{padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:inherit}
+
+    .btn{padding:10px 12px;border-radius:10px;border:0;cursor:pointer}
+    .btn-primary{background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#02100a;font-weight:700}
+    .btn-ghost{background:transparent;border:1px solid rgba(255,255,255,0.04)}
+
+    /* TABLE */
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;margin-top:8px}
+    th,td{padding:10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.02);font-size:13px}
+    th{color:var(--muted);font-weight:600}
+    .tag{padding:6px 8px;border-radius:999px;font-weight:700;font-size:12px}
+
+    .pill{display:inline-flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.02)}
+
+    .actions button{margin-right:6px}
+
+    .muted{color:var(--muted);font-size:13px}
+
+    /* pagination */
+    .pagination{display:flex;gap:8px;align-items:center;justify-content:flex-end;margin-top:10px}
+    .page-btn{padding:8px 10px;border-radius:8px;border:0;background:transparent;color:inherit;cursor:pointer}
+    .page-btn.active{background:rgba(0,255,127,0.06)}
+
+    /* responsive */
+    @media (max-width:900px){
+      .app{grid-template-columns:1fr;}
+      .grid{grid-template-columns:1fr}
+      .sidebar{order:2}
+      .main{order:1}
+    }
+
+    /* small helpers */
+    .right{margin-left:auto}
+    .hr{height:1px;background:rgba(255,255,255,0.02);margin:10px 0;border-radius:2px}
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;padding:20px}
+    .modal{background:linear-gradient(180deg,#071018,#0b1214);padding:18px;border-radius:12px;max-width:700px;width:100%}
+
+    /* tiny */
+    .note{font-size:12px;color:var(--muted)}
+
+  </style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">Rx</div>
+      <div>
+        <h1>PharmaDock</h1>
+        <p class="small">Inventory Dashboard</p>
+      </div>
+    </div>
+
+    <nav class="nav" id="nav">
+      <button class="active" data-view="dashboard">Dashboard</button>
+      <button data-view="add">Add Drug</button>
+      <button data-view="inventory">Inventory</button>
+      <button data-view="reports">Reports</button>
+      <button data-view="settings">Settings</button>
+    </nav>
+
+    <div class="meta">
+      <p class="small">Storage: <span id="storageCount">0</span> items</p>
+      <p class="small">Theme: <span id="themeName">Neon</span></p>
+      <div style="height:8px"></div>
+      <button class="btn btn-ghost" id="exportCsvBtn">Export CSV</button>
+      <button class="btn btn-ghost" id="exportPdfBtn">Export PDF</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="search">
+        <input placeholder="Search by drug name or manufacturer" id="globalSearch" />
+        <div class="controls">
+          <button class="icon-btn" id="toggleTheme" title="Toggle light/dark">🌗</button>
+          <button class="icon-btn" id="showAdd" title="Show Add Form">➕ Add</button>
+        </div>
+      </div>
+
+      <div class="right">
+        <div class="pill">
+          <div style="width:10px;height:10px;border-radius:99px;background:var(--accent)"></div>
+          <div style="margin-left:6px">Live (localStorage)</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- LEFT: Inventory Table -->
+      <section>
+        <div class="card">
+          <h3>Inventory</h3>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+            <select id="filterExpiry">
+              <option value="all">All</option>
+              <option value="expired">Expired</option>
+              <option value="expiring30">Expiring in 30 days</option>
+            </select>
+            <select id="sortBy">
+              <option value="newest">Newest Purchase</option>
+              <option value="oldest">Oldest Purchase</option>
+              <option value="lowbal">Lowest Balance</option>
+            </select>
+            <div class="right muted">Showing <span id="shownCount">0</span> of <span id="totalCount">0</span></div>
+          </div>
+
+          <div class="table-wrap">
+            <table id="inventoryTable">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Purchase</th>
+                  <th>Expiry</th>
+                  <th>Quantity</th>
+                  <th>Balance</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+
+          <div class="pagination" id="pagination"></div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Add / Edit Form -->
+      <aside>
+        <div class="card" id="addCard">
+          <h3 id="formTitle">Add New Drug</h3>
+
+          <form id="drugForm">
+            <div class="form-row">
+              <div class="field">
+                <label>Drug Name</label>
+                <input id="drug_name" required />
+              </div>
+              <div class="field">
+                <label>Manufacturer</label>
+                <input id="manufacturer" />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px">
+              <div class="field">
+                <label>Date Purchased</label>
+                <input type="date" id="date_purchase" />
+              </div>
+              <div class="field">
+                <label>Manufacture Date</label>
+                <input type="date" id="manufacture_date" />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px">
+              <div class="field">
+                <label>Expiry Date</label>
+                <input type="date" id="expiry_date" />
+              </div>
+              <div class="field">
+                <label>Quantity</label>
+                <input type="number" id="quantity" min="0" />
+              </div>
+            </div>
+
+            <div class="form-row" style="margin-top:8px">
+              <div class="field">
+                <label>Cost</label>
+                <input type="number" id="cost" min="0" />
+              </div>
+              <div class="field">
+                <label>Source / Unit</label>
+                <input id="source_unit" />
+              </div>
+            </div>
+
+            <div style="display:flex;gap:8px;margin-top:12px">
+              <button class="btn btn-primary" id="saveBtn">Save</button>
+              <button type="button" class="btn btn-ghost" id="clearForm">Clear</button>
+            </div>
+
+            <div class="hr" style="margin-top:12px"></div>
+            <div class="note">Tip: Click on a record's <strong>Edit</strong> to update or <strong>Issue</strong> to subtract quantity.</div>
+          </form>
+        </div>
+
+        <div class="card" style="margin-top:14px">
+          <h3>Quick Actions</h3>
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+            <button class="btn btn-ghost" id="exportCsv">Export CSV</button>
+            <button class="btn btn-ghost" id="exportPdf">Export PDF</button>
+            <button class="btn btn-ghost" id="clearAll">Clear All Data</button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+  </main>
+</div>
+<div id="modalRoot" style="display:none"></div>
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// --- Utilities ---
+const LS_KEY = 'pharmadock_inventory_v1';
+const pageSize = 7;
+let state = {
+  view: 'dashboard',
+  items: [],
+  page: 1,
+  editingId: null,
+  sortBy: 'newest',
+  filterExpiry: 'all',
+  query: ''
+};
+
+// load & save
+function load(){
+  const raw = localStorage.getItem(LS_KEY);
+  state.items = raw ? JSON.parse(raw) : [];
+}
+function save(){
+  localStorage.setItem(LS_KEY, JSON.stringify(state.items));
+  document.getElementById('storageCount').textContent = state.items.length;
+}
+
+// id generator
+function id(){
+  return 'id_' + Math.random().toString(36).slice(2,9);
+}
+
+// date helpers
+function toISO(d){ return d ? (new Date(d)).toISOString().slice(0,10) : ''; }
+function daysBetween(a,b){ // a,b ISO strings
+  return Math.ceil((new Date(b) - new Date(a)) / (1000*60*60*24));
+}
+
+// --- CRUD ---
+function addItem(obj){
+  // duplicate check: same name (case-insensitive) + same purchase date
+  const dup = state.items.find(it => it.drug_name.toLowerCase() === obj.drug_name.toLowerCase() && it.date_purchase === obj.date_purchase);
+  if(dup) throw new Error('Drug already exists with same purchase date');
+  state.items.unshift({
+    id: id(),
+    drug_name: obj.drug_name,
+    manufacturer: obj.manufacturer || '',
+    date_purchase: obj.date_purchase || toISO(new Date()),
+    manufacture_date: obj.manufacture_date || '',
+    expiry_date: obj.expiry_date || '',
+    quantity: Number(obj.quantity)||0,
+    balance: Number(obj.quantity)||0,
+    cost: Number(obj.cost)||0,
+    source_unit: obj.source_unit||'',
+    created_at: new Date().toISOString()
+  });
+  save();
+}
+
+function updateItem(idVal, patch){
+  const it = state.items.find(i => i.id === idVal);
+  if(!it) throw new Error('Not found');
+  Object.assign(it, patch);
+  // keep balance logic if quantity changed
+  if(patch.quantity !== undefined){
+    const q = Number(patch.quantity);
+    it.balance = q;
+  }
+  save();
+}
+
+function deleteItem(idVal){
+  state.items = state.items.filter(i => i.id !== idVal);
+  save();
+}
+
+function issueItem(idVal, amount){
+  const it = state.items.find(i => i.id === idVal);
+  if(!it) throw new Error('Not found');
+  const amt = Number(amount);
+  if(amt <= 0) throw new Error('Invalid amount');
+  if(it.balance - amt < 0) throw new Error('Sorry, you have less quantity for supply');
+  it.balance = it.balance - amt;
+  save();
+}
+
+// --- Export CSV & PDF ---
+function exportCSV(filename='pharmadock_inventory.csv'){
+  const rows = [ ['drug_name','manufacturer','date_purchase','manufacture_date','expiry_date','quantity','balance','cost','source_unit'] ];
+  state.items.forEach(it => rows.push([it.drug_name,it.manufacturer,it.date_purchase,it.manufacture_date,it.expiry_date,String(it.quantity),String(it.balance),String(it.cost),it.source_unit]));
+  const csv = rows.map(r => r.map(c => '"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function exportPDF(filename='pharmadock_report.pdf'){
+  // uses jsPDF UMD
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({unit:'pt',format:'a4'});
+  const title = 'PharmaDock Inventory Report';
+  doc.setFontSize(18);
+  doc.text(title,40,40);
+  doc.setFontSize(10);
+  const headers = ['Name','Purchase','Expiry','Qty','Bal','Cost'];
+  const body = state.items.map(it => [it.drug_name,it.date_purchase,it.expiry_date,String(it.quantity),String(it.balance),String(it.cost)]);
+  // simple table: 40 left margin, start y 70
+  let y = 70;
+  const rowH = 18;
+  const colW = [160,70,70,40,40,50];
+  // header
+  doc.setFillColor(0,255,127);
+  doc.setTextColor(0,0,0);
+  doc.setDrawColor(120);
+  doc.setFontSize(11);
+  let x = 40;
+  headers.forEach((h,i)=>{doc.text(h,x+4,y); x += colW[i];});
+  y += rowH;
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(9);
+  doc.setTextColor(200);
+  for(let r of body){
+    x = 40;
+    for(let i=0;i<r.length;i++){
+      doc.text(String(r[i]).substring(0,25), x+4, y);
+      x += colW[i];
+    }
+    y += rowH;
+    if(y > 750){ doc.addPage(); y = 40; }
+  }
+  doc.save(filename);
+}
+
+// --- Filtering, Sorting, Pagination ---
+function applyFilterSort(items){
+  const q = state.query.trim().toLowerCase();
+  let res = items.filter(it => {
+    const matchQ = !q || it.drug_name.toLowerCase().includes(q) || (it.manufacturer||'').toLowerCase().includes(q);
+    if(!matchQ) return false;
+    if(state.filterExpiry === 'expired'){
+      return it.expiry_date && new Date(it.expiry_date) < new Date();
+    }
+    if(state.filterExpiry === 'expiring30'){
+      if(!it.expiry_date) return false;
+      const days = daysBetween(new Date(), it.expiry_date);
+      return days >=0 && days <= 30;
+    }
+    return true;
+  });
+
+  if(state.sortBy === 'newest') res.sort((a,b)=> new Date(b.date_purchase) - new Date(a.date_purchase));
+  if(state.sortBy === 'oldest') res.sort((a,b)=> new Date(a.date_purchase) - new Date(b.date_purchase));
+  if(state.sortBy === 'lowbal') res.sort((a,b)=> a.balance - b.balance);
+
+  return res;
+}
+
+function paginated(items){
+  const total = items.length;
+  const pages = Math.max(1, Math.ceil(total / pageSize));
+  if(state.page > pages) state.page = pages;
+  const start = (state.page-1)*pageSize;
+  return {pageItems: items.slice(start, start+pageSize), pages, total};
+}
+
+// --- UI Render ---
+function render(){
+  // counts
+  const total = state.items.length;
+  document.getElementById('totalCount').textContent = total;
+  // apply filters & sort
+  const filtered = applyFilterSort(state.items);
+  const p = paginated(filtered);
+  document.getElementById('shownCount').textContent = filtered.length;
+
+  // table
+  const tbody = document.querySelector('#inventoryTable tbody');
+  tbody.innerHTML = '';
+  for(const it of p.pageItems){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${escapeHtml(it.drug_name)}</strong><div class="muted">${escapeHtml(it.manufacturer||'')}</div></td>
+      <td>${it.date_purchase || ''}</td>
+      <td>${it.expiry_date || ''}</td>
+      <td>${it.quantity}</td>
+      <td>${it.balance}</td>
+      <td class="actions">
+        <button class="btn btn-ghost" data-action="edit" data-id="${it.id}">Edit</button>
+        <button class="btn btn-ghost" data-action="issue" data-id="${it.id}">Issue</button>
+        <button class="btn btn-ghost" data-action="del" data-id="${it.id}">Delete</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+
+  // pagination
+  const pagWrap = document.getElementById('pagination');
+  pagWrap.innerHTML = '';
+  for(let i=1;i<=p.pages;i++){
+    const b = document.createElement('button');
+    b.textContent = i;
+    b.className = 'page-btn' + (i===state.page? ' active':'');
+    b.onclick = ()=>{ state.page = i; render(); };
+    pagWrap.appendChild(b);
+  }
+
+  document.getElementById('storageCount').textContent = total;
+}
+
+// escape
+function escapeHtml(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// --- UI wiring ---
+function init(){
+  load();
+  // bind nav
+  document.querySelectorAll('#nav button').forEach(btn=>btn.onclick = (e)=>{
+    document.querySelectorAll('#nav button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const view = btn.dataset.view;
+    // basic view handling (we keep single page, show/hide add area)
+    if(view === 'add') document.getElementById('addCard').scrollIntoView({behavior:'smooth'});
+  });
+
+  // search
+  const qEl = document.getElementById('globalSearch');
+  qEl.addEventListener('input', ()=>{ state.query = qEl.value; state.page = 1; render(); });
+
+  // filters
+  document.getElementById('filterExpiry').addEventListener('change', (e)=>{ state.filterExpiry = e.target.value; state.page =1; render(); });
+  document.getElementById('sortBy').addEventListener('change', (e)=>{ state.sortBy = e.target.value; state.page =1; render(); });
+
+  // form
+  const form = document.getElementById('drugForm');
+  form.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const payload = {
+      drug_name: document.getElementById('drug_name').value.trim(),
+      manufacturer: document.getElementById('manufacturer').value.trim(),
+      date_purchase: document.getElementById('date_purchase').value,
+      manufacture_date: document.getElementById('manufacture_date').value,
+      expiry_date: document.getElementById('expiry_date').value,
+      quantity: Number(document.getElementById('quantity').value)||0,
+      cost: Number(document.getElementById('cost').value)||0,
+      source_unit: document.getElementById('source_unit').value.trim()
+    };
+    try{
+      if(state.editingId){
+        // update
+        updateItem(state.editingId, payload);
+        state.editingId = null;
+        document.getElementById('formTitle').textContent = 'Add New Drug';
+        document.getElementById('saveBtn').textContent = 'Save';
+        alert('Update successful');
+      } else {
+        addItem(payload);
+        alert('Record successful');
+      }
+      form.reset();
+      state.page = 1;
+      render();
+    }catch(err){ alert(err.message); }
+  });
+
+  document.getElementById('clearForm').onclick = ()=>{ form.reset(); state.editingId=null; document.getElementById('formTitle').textContent = 'Add New Drug'; document.getElementById('saveBtn').textContent='Save'; };
+
+  // export buttons
+  document.getElementById('exportCsv').onclick = ()=> exportCSV();
+  document.getElementById('exportPdf').onclick = ()=> exportPDF();
+  document.getElementById('exportCsvBtn').onclick = ()=> exportCSV();
+  document.getElementById('exportPdfBtn').onclick = ()=> exportPDF();
+
+  document.getElementById('clearAll').onclick = ()=>{ if(confirm('Clear all inventory? This cannot be undone.')){ state.items=[]; save(); render(); }};
+
+  document.getElementById('showAdd').onclick = ()=>{ document.getElementById('drug_name').focus(); window.scrollTo({top:0,behavior:'smooth'}); };
+
+  // toggle theme (just switches body background to lightish)
+  const toggle = document.getElementById('toggleTheme');
+  toggle.onclick = ()=>{
+    document.body.classList.toggle('light');
+    const isLight = document.body.classList.contains('light');
+    document.getElementById('themeName').textContent = isLight ? 'Light' : 'Neon';
+    if(isLight){
+      document.documentElement.style.setProperty('--bg','#f6f9f8');
+      document.documentElement.style.setProperty('--card','#ffffff');
+      document.documentElement.style.setProperty('--muted','#334');
+      document.documentElement.style.setProperty('--accent','#00b36b');
+      document.documentElement.style.setProperty('--accent-2','#0fa055');
+      document.documentElement.style.setProperty('--glass','rgba(0,0,0,0.03)');
+      document.documentElement.style.setProperty('--glass-2','rgba(0,0,0,0.02)');
+      document.documentElement.style.setProperty('color','#02100a');
+      document.body.style.color = '#02100a';
+    } else {
+      // revert to neon dark
+      document.documentElement.style.setProperty('--bg','#0b0f12');
+      document.documentElement.style.setProperty('--card','#0f1416');
+      document.documentElement.style.setProperty('--muted','#9aa8a6');
+      document.documentElement.style.setProperty('--accent','#00ff7f');
+      document.documentElement.style.setProperty('--accent-2','#00e36a');
+      document.documentElement.style.setProperty('--glass','rgba(255,255,255,0.03)');
+      document.documentElement.style.setProperty('--glass-2','rgba(255,255,255,0.02)');
+      document.body.style.color = '#e6f7ee';
+    }
+  };
+
+  // delegate table actions
+  document.querySelector('#inventoryTable tbody').addEventListener('click', (e)=>{
+    const b = e.target.closest('button');
+    if(!b) return;
+    const act = b.dataset.action;
+    const idVal = b.dataset.id;
+    if(act === 'edit'){
+      startEdit(idVal);
+    } else if(act === 'del'){
+      if(confirm('Delete this record?')){ deleteItem(idVal); render(); }
+    } else if(act === 'issue'){
+      startIssue(idVal);
+    }
+  });
+
+  // quick load demo data when empty (optional)
+  if(state.items.length === 0){
+    seedDemo();
+  }
+
+  render();
+}
+
+function startEdit(idVal){
+  const it = state.items.find(i=>i.id===idVal);
+  if(!it) return;
+  document.getElementById('drug_name').value = it.drug_name;
+  document.getElementById('manufacturer').value = it.manufacturer;
+  document.getElementById('date_purchase').value = it.date_purchase;
+  document.getElementById('manufacture_date').value = it.manufacture_date;
+  document.getElementById('expiry_date').value = it.expiry_date;
+  document.getElementById('quantity').value = it.quantity;
+  document.getElementById('cost').value = it.cost;
+  document.getElementById('source_unit').value = it.source_unit;
+  state.editingId = idVal;
+  document.getElementById('formTitle').textContent = 'Edit Drug';
+  document.getElementById('saveBtn').textContent = 'Update';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function startIssue(idVal){
+  const it = state.items.find(i=>i.id===idVal);
+  if(!it) return;
+  const amt = prompt('Enter quantity to issue (available: '+it.balance+'):');
+  if(!amt) return;
+  try{ issueItem(idVal, Number(amt)); alert('Issue successful'); render(); }
+  catch(err){ alert(err.message); }
+}
+
+// seed demo data (small sample)
+function seedDemo(){
+  const sample = [
+    {drug_name:'Amoxicillin 500mg', manufacturer:'MediPharm', date_purchase:toISO(new Date()), manufacture_date:toISO(new Date('2024-01-01')), expiry_date:toISO(new Date('2026-01-01')), quantity:120, cost:250, source_unit:'Box'},
+    {drug_name:'Paracetamol 500mg', manufacturer:'HealCo', date_purchase:toISO(new Date()), manufacture_date:toISO(new Date('2023-05-01')), expiry_date:toISO(new Date('2025-05-01')), quantity:200, cost:50, source_unit:'Bottle'},
+    {drug_name:'Cough Syrup', manufacturer:'Wellness', date_purchase:toISO(new Date()), manufacture_date:toISO(new Date('2024-02-01')), expiry_date:toISO(new Date('2025-02-01')), quantity:40, cost:800, source_unit:'Bottle'}
+  ];
+  for(const s of sample) state.items.push(Object.assign({id:id(),balance:s.quantity,created_at:new Date().toISOString()}, s));
+  save();
+}
+
+window.exportCSV = exportCSV;
+window.exportPDF = exportPDF;
+
+init();
+
+</script>
+</body>
+</html>
